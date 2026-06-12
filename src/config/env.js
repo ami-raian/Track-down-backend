@@ -17,6 +17,13 @@ const env = {
     accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN || '7d',
   },
 
+  // Super admin (seeded on startup) — the only account allowed to remove users/posts
+  admin: {
+    name: process.env.ADMIN_NAME || 'Super Admin',
+    email: (process.env.ADMIN_EMAIL || '').toLowerCase().trim(),
+    password: process.env.ADMIN_PASSWORD || '',
+  },
+
   // File uploads (saved on the VPS disk)
   upload: {
     dir: process.env.UPLOAD_DIR || 'uploads',

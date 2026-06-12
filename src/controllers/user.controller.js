@@ -1,12 +1,23 @@
 const asyncHandler = require('../utils/asyncHandler');
-const { sendSuccess } = require('../utils/ApiResponse');
+const { sendSuccess, sendPaginated } = require('../utils/ApiResponse');
 const userService = require('../services/user.service');
 const { fileToUrl } = require('../middlewares/upload.middleware');
+const { getPagination, buildFilter } = require('../utils/query');
 
-// GET /api/users  (admin)
+const USER_FILTER_FIELDS = ['name', 'email', 'role', 'createdAt'];
+
+// GET /api/users?page=1&length=10&filters={...}  (admin) — paginated + filterable
 const getAllUsers = asyncHandler(async (req, res) => {
-  const users = await userService.getAllUsers();
-  return sendSuccess(res, 200, 'Users fetched successfully', users);
+  const { page, pageSize, skip } = getPagination(req.query);
+  const filter = buildFilter(req.query, USER_FILTER_FIELDS);
+
+  const { items, pagination } = await userService.getUsers({
+    page,
+    pageSize,
+    skip,
+    filter,
+  });
+  return sendPaginated(res, 200, 'Users fetched successfully', items, pagination);
 });
 
 // GET /api/users/:id
@@ -24,4 +35,16 @@ const updateMe = asyncHandler(async (req, res) => {
   return sendSuccess(res, 200, 'Profile updated successfully', user);
 });
 
-module.exports = { getAllUsers, getUserById, updateMe };
+// DELETE /api/users/:id?hard=true  (admin only) — soft (default) or hard delete
+const deleteUser = asyncHandler(async (req, res) => {
+  const hard = req.query.hard === 'true';
+  const result = await userService.deleteUser(req.params.id, req.user, { hard });
+  return sendSuccess(
+    res,
+    200,
+    hard ? 'User permanently deleted' : 'User removed',
+    result
+  );
+});
+
+module.exports = { getAllUsers, getUserById, updateMe, deleteUser };

@@ -40,4 +40,34 @@ function fileToUrl(filename) {
   return `${env.serverUrl}/${env.upload.dir}/${filename}`;
 }
 
-module.exports = { upload, fileToUrl, uploadRoot };
+/**
+ * Delete an uploaded image file from the VPS disk, given its public URL.
+ * Only touches files that live inside our own upload directory (ignores
+ * external URLs like imgbb). Safe to call with empty/unknown URLs.
+ */
+function deleteUploadByUrl(url) {
+  if (!url || typeof url !== 'string') return false;
+
+  const marker = `/${env.upload.dir}/`;
+  const idx = url.indexOf(marker);
+  if (idx === -1) return false; // not one of our uploads
+
+  const filename = path.basename(url.slice(idx + marker.length));
+  if (!filename) return false;
+
+  // Guard against path traversal — resolved path must stay inside uploadRoot
+  const filePath = path.resolve(uploadRoot, filename);
+  if (!filePath.startsWith(uploadRoot)) return false;
+
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      return true;
+    }
+  } catch {
+    /* ignore — best effort */
+  }
+  return false;
+}
+
+module.exports = { upload, fileToUrl, uploadRoot, deleteUploadByUrl };

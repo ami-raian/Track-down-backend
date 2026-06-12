@@ -1,10 +1,12 @@
 const app = require('./src/app');
 const env = require('./src/config/env');
 const connectDB = require('./src/config/db');
+const seedAdmin = require('./src/utils/seedAdmin');
 
 async function start() {
   try {
     await connectDB();
+    await seedAdmin();
     const server = app.listen(env.port, () => {
       console.log(`🚀 Track Down API running on ${env.serverUrl} (port ${env.port})`);
     });

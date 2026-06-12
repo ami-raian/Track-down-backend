@@ -23,6 +23,10 @@ const postSchema = new mongoose.Schema(
     // Engagement
     likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // one entry per user
     commentsCount: { type: Number, default: 0 },
+
+    // Soft delete — record stays in DB but is hidden from the feed
+    isDeleted: { type: Boolean, default: false, index: true },
+    deletedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

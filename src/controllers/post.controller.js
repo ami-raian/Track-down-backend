@@ -56,10 +56,16 @@ const toggleLike = asyncHandler(async (req, res) => {
   return sendSuccess(res, 200, 'Like updated', result);
 });
 
-// DELETE /api/posts/:id  (protected)
+// DELETE /api/posts/:id?hard=true  (protected; hard delete is admin-only)
 const deletePost = asyncHandler(async (req, res) => {
-  await postService.deletePost(req.params.id, req.user);
-  return sendSuccess(res, 200, 'Post deleted successfully', null);
+  const hard = req.query.hard === 'true';
+  const result = await postService.deletePost(req.params.id, req.user, { hard });
+  return sendSuccess(
+    res,
+    200,
+    hard ? 'Post permanently deleted' : 'Post deleted',
+    result
+  );
 });
 
 module.exports = {

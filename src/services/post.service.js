@@ -1,6 +1,11 @@
 const Post = require('../models/post.model');
+const Comment = require('../models/comment.model');
 const ApiError = require('../utils/ApiError');
 const { buildPagination } = require('../utils/query');
+const { deleteUploadByUrl } = require('../middlewares/upload.middleware');
+
+// Excludes soft-deleted posts from normal queries
+const NOT_DELETED = { isDeleted: { $ne: true } };
 
 /**
  * Create a post authored by the given user.
@@ -21,9 +26,10 @@ async function createPost(author, { description, image }) {
  * Returns { items, pagination } in the standard list shape.
  */
 async function getPosts({ page = 1, pageSize = 10, skip = 0, filter = {} } = {}) {
+  const query = { ...filter, ...NOT_DELETED };
   const [items, totalItems] = await Promise.all([
-    Post.find(filter).sort({ createdAt: -1 }).skip(skip).limit(pageSize),
-    Post.countDocuments(filter),
+    Post.find(query).sort({ createdAt: -1 }).skip(skip).limit(pageSize),
+    Post.countDocuments(query),
   ]);
 
   return { items, pagination: buildPagination(totalItems, page, pageSize) };
@@ -39,7 +45,7 @@ async function getPostById(id) {
  * Posts authored by a given user, newest first (paginated, standard shape).
  */
 async function getUserPosts(authorId, { page = 1, pageSize = 10, skip = 0 } = {}) {
-  const filter = { author: authorId };
+  const filter = { author: authorId, ...NOT_DELETED };
   const [items, totalItems] = await Promise.all([
     Post.find(filter).sort({ createdAt: -1 }).skip(skip).limit(pageSize),
     Post.countDocuments(filter),
@@ -70,19 +76,36 @@ async function toggleLike(postId, userId) {
 }
 
 /**
- * Delete a post — only the author (or an admin) may do so.
+ * Delete a post.
+ *  - Author or admin may delete.
+ *  - Default is a soft delete (kept in DB, hidden from the feed).
+ *  - `hard: true` permanently removes it from the DB and deletes its image
+ *    from the VPS disk — admin only.
  */
-async function deletePost(id, requester) {
+async function deletePost(id, requester, { hard = false } = {}) {
   const post = await Post.findById(id);
   if (!post) throw ApiError.notFound('Post not found');
 
+  const isAdmin = requester.role === 'admin';
   const isOwner = post.author.toString() === requester._id.toString();
-  if (!isOwner && requester.role !== 'admin') {
+  if (!isOwner && !isAdmin) {
     throw ApiError.forbidden('You can only delete your own posts');
   }
+  if (hard && !isAdmin) {
+    throw ApiError.forbidden('Only an admin can permanently delete a post');
+  }
 
-  await post.deleteOne();
-  return post;
+  if (hard) {
+    deleteUploadByUrl(post.image); // remove the image file from the VPS
+    await Comment.deleteMany({ post: post._id }); // clean up its comments
+    await post.deleteOne();
+    return { hard: true };
+  }
+
+  post.isDeleted = true;
+  post.deletedAt = new Date();
+  await post.save();
+  return { hard: false };
 }
 
 module.exports = {

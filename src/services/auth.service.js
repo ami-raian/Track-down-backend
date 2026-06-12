@@ -22,6 +22,8 @@ async function login({ email, password }) {
   // password is select:false, so explicitly include it
   const user = await User.findOne({ email }).select('+password');
   if (!user) throw ApiError.unauthorized('Invalid email or password');
+  if (user.isDeleted)
+    throw ApiError.unauthorized('This account has been deactivated');
 
   const isMatch = await user.comparePassword(password);
   if (!isMatch) throw ApiError.unauthorized('Invalid email or password');
