@@ -39,7 +39,7 @@ Requires a running MongoDB. The default `.env` points to a **local** instance
 
 ## API
 
-Base URL: `http://localhost:5000/api`
+Base URL: `http://localhost:5002/api`
 
 | Method | Endpoint            | Auth      | Body                                   |
 |--------|---------------------|-----------|----------------------------------------|
