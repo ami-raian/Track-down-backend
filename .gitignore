@@ -1,2 +1,11 @@
 node_modules
 .env
+.env.local
+
+# Uploaded files live on the VPS disk — don't commit them
+uploads/*
+!uploads/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
