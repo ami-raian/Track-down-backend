@@ -1,5 +1,6 @@
 const Post = require('../models/post.model');
 const ApiError = require('../utils/ApiError');
+const { buildPagination } = require('../utils/query');
 
 /**
  * Create a post authored by the given user.
@@ -16,25 +17,34 @@ async function createPost(author, { description, image }) {
 }
 
 /**
- * Paginated, newest-first feed.
+ * Paginated, newest-first feed with optional filtering.
+ * Returns { items, pagination } in the standard list shape.
  */
-async function getPosts({ page = 1, limit = 10 } = {}) {
-  const skip = (page - 1) * limit;
-  const [items, total] = await Promise.all([
-    Post.find().sort({ createdAt: -1 }).skip(skip).limit(limit),
-    Post.countDocuments(),
+async function getPosts({ page = 1, pageSize = 10, skip = 0, filter = {} } = {}) {
+  const [items, totalItems] = await Promise.all([
+    Post.find(filter).sort({ createdAt: -1 }).skip(skip).limit(pageSize),
+    Post.countDocuments(filter),
   ]);
 
-  return {
-    items,
-    meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
-  };
+  return { items, pagination: buildPagination(totalItems, page, pageSize) };
 }
 
 async function getPostById(id) {
   const post = await Post.findById(id);
   if (!post) throw ApiError.notFound('Post not found');
   return post;
+}
+
+/**
+ * Posts authored by a given user, newest first (paginated, standard shape).
+ */
+async function getUserPosts(authorId, { page = 1, pageSize = 10, skip = 0 } = {}) {
+  const filter = { author: authorId };
+  const [items, totalItems] = await Promise.all([
+    Post.find(filter).sort({ createdAt: -1 }).skip(skip).limit(pageSize),
+    Post.countDocuments(filter),
+  ]);
+  return { items, pagination: buildPagination(totalItems, page, pageSize) };
 }
 
 /**
@@ -53,4 +63,4 @@ async function deletePost(id, requester) {
   return post;
 }
 
-module.exports = { createPost, getPosts, getPostById, deletePost };
+module.exports = { createPost, getPosts, getPostById, getUserPosts, deletePost };

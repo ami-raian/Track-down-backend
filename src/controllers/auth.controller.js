@@ -35,7 +35,7 @@ const login = asyncHandler(async (req, res) => {
 
 // GET /api/auth/me  (protected)
 const me = asyncHandler(async (req, res) => {
-  return sendSuccess(res, 200, 'Current user', { user: req.user });
+  return sendSuccess(res, 200, 'Current user fetched successfully', req.user);
 });
 
 module.exports = { register, login, me };
