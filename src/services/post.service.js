@@ -48,6 +48,28 @@ async function getUserPosts(authorId, { page = 1, pageSize = 10, skip = 0 } = {}
 }
 
 /**
+ * Toggle the current user's like on a post (Facebook-style: one like per user).
+ * Returns the new like state and count.
+ */
+async function toggleLike(postId, userId) {
+  const post = await Post.findById(postId);
+  if (!post) throw ApiError.notFound('Post not found');
+
+  const idx = post.likes.findIndex((id) => id.toString() === userId.toString());
+  let liked;
+  if (idx === -1) {
+    post.likes.push(userId);
+    liked = true;
+  } else {
+    post.likes.splice(idx, 1);
+    liked = false;
+  }
+  await post.save();
+
+  return { liked, likesCount: post.likes.length };
+}
+
+/**
  * Delete a post — only the author (or an admin) may do so.
  */
 async function deletePost(id, requester) {
@@ -63,4 +85,11 @@ async function deletePost(id, requester) {
   return post;
 }
 
-module.exports = { createPost, getPosts, getPostById, getUserPosts, deletePost };
+module.exports = {
+  createPost,
+  getPosts,
+  getPostById,
+  getUserPosts,
+  toggleLike,
+  deletePost,
+};

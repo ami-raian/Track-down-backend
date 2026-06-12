@@ -19,6 +19,10 @@ const postSchema = new mongoose.Schema(
       type: String, // absolute URL to the post image stored on the VPS
       required: [true, 'Post image is required'],
     },
+
+    // Engagement
+    likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], // one entry per user
+    commentsCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

@@ -50,10 +50,23 @@ const getPostById = asyncHandler(async (req, res) => {
   return sendSuccess(res, 200, 'Post fetched successfully', post);
 });
 
+// POST /api/posts/:id/like  (protected) — toggle like for the current user
+const toggleLike = asyncHandler(async (req, res) => {
+  const result = await postService.toggleLike(req.params.id, req.user._id);
+  return sendSuccess(res, 200, 'Like updated', result);
+});
+
 // DELETE /api/posts/:id  (protected)
 const deletePost = asyncHandler(async (req, res) => {
   await postService.deletePost(req.params.id, req.user);
   return sendSuccess(res, 200, 'Post deleted successfully', null);
 });
 
-module.exports = { createPost, getPosts, getMyPosts, getPostById, deletePost };
+module.exports = {
+  createPost,
+  getPosts,
+  getMyPosts,
+  getPostById,
+  toggleLike,
+  deletePost,
+};
